@@ -1,4 +1,5 @@
-.DS_STORE
+.DS_Store
 __py_cache__
 *.pyc
 fonts/
+data/*.log
