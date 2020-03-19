@@ -40,7 +40,7 @@ class NoaaForecast():
 			#print(tdiff)
 			
 			if (tdiff < timedelta(minutes=45)):
-				logger.debug("using logged noaa data")
+				logger.info("using logged noaa data")
 				self.forecast = {
 					'temps': noaa_log["temps"],
 					'icons': noaa_log["icons"],

@@ -53,7 +53,7 @@ class SatelliteImage():
 			soup = BeautifulSoup(res.content, 'html.parser')
 			img_urls = soup.find_all('a', string=re.compile("1200x1200"))
 			if not img_urls:
-				logger.debug('Error: no image urls found')
+				logger.warning('Error: no image urls found')
 				return None
 			logger.debug('latest image anchor: ')
 			logger.debug(img_urls[-1])

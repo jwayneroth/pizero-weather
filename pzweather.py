@@ -54,23 +54,37 @@ render a string onto our surface
 
 	:param string: text to render
 	:param xy: tuple with top and right or left corner
-	:param font: font
 	:param align: optional align left or right
 """
-def draw_text(string, xy, font, align="left"):
+def draw_text(string, xy, align="left"):
+	over = 2
 	x,y = xy
 	if align is "right":
 		w,h = draw.textsize(string, font=font)
 		x = x - w
-	draw.text((x - 1, y), string, WHITE, font=font)
-	draw.text((x + 1, y), string, WHITE, font=font)
-	draw.text((x, y), string, BLACK, font=font)
+	cx = x
+	for c in string:
+		draw.text((cx-over,y-over), c, WHITE, font=font)
+		draw.text((cx,y-over), c, WHITE, font=font)
+		draw.text((cx+over,y-over), c, WHITE, font=font)
+		draw.text((cx-over,y), c, WHITE, font=font)
+		draw.text((cx+over,y), c, WHITE, font=font)
+		draw.text((cx-over,y+over), c, WHITE, font=font)
+		draw.text((cx,y+over), c, WHITE, font=font)
+		draw.text((cx+over,y+over), c, WHITE, font=font)
+		cw = draw.textsize(c, font=font)[0]
+		cx = cx + cw
+	cx = x
+	for c in string:
+		draw.text((cx,y), c, BLACK, font=font)
+		cw = draw.textsize(c, font=font)[0]
+		cx = cx + cw
 
 """
 main
 """
 if __name__ == '__main__':
-	logger.debug('pz weather started')
+	logger.info('pizero weather started at ' + time.strftime("%m/%d/%Y %I:%M %p"))
 
 	bg = SatelliteImage().image
 
@@ -83,7 +97,7 @@ if __name__ == '__main__':
 	draw = ImageDraw.Draw(bg)
 
 	font = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", 22)
-
+	
 	date = time.strftime("%m/%d")
 	if date[0] is "0":
 		date = date[1:]
@@ -92,15 +106,15 @@ if __name__ == '__main__':
 	if time[0] is "0":
 		time = time[1:]
 	
-	draw_text(date, (34, 12), font)
-	draw_text(time, (178, 12), font, align="right")
+	draw_text(date, (34, 12))
+	draw_text(time, (178, 12), align="right")
 	
 	if current is not None:
 		if "temperature" in current:
-			draw_text(u"{}°".format(current["temperature"]), (188, 38), font, align="right")
+			draw_text(u"{}°".format(current["temperature"]), (188, 38), align="right")
 
 		if "humidity" in current:
-			draw_text("{}%".format(current["humidity"]), (194, 64), font, align="right")
+			draw_text("{}%".format(current["humidity"]), (194, 64), align="right")
 
 	if "icons" in forecast and len(forecast["icons"]) > 0:
 		try:

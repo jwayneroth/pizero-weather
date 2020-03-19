@@ -23,6 +23,6 @@ fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 
 logger = logging.getLogger('pz_weather_logger')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(ch)
 logger.addHandler(fh)
