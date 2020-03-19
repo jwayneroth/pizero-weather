@@ -12,6 +12,9 @@ IMG_DIRECTORY = os.path.dirname(__file__) + '/images/'
 FONT_DIRECTORY = os.path.dirname(__file__) + '/fonts/'
 DATA_DIRECTORY = os.path.dirname(__file__) + '/data/'
 
+DISPLAY_WIDTH = 212
+DISPLAY_HEIGHT = 104
+
 formatter = logging.Formatter('%(asctime)s_%(name)s_%(levelname)s - %(message)s')
 
 ch = logging.StreamHandler()

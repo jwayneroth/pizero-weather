@@ -19,6 +19,12 @@ BLACK = 1
 WHITE = 0
 RED = 2
 
+LR_PADDING = 20
+TB_PADDING = 12
+
+FONT_SIZE = 26
+FONT_Y_OFFSET = 6
+
 """
 helper to exit program in case we need special rpi consideration in future
 """
@@ -96,7 +102,7 @@ if __name__ == '__main__':
 	
 	draw = ImageDraw.Draw(bg)
 
-	font = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", 22)
+	font = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE)
 	
 	date = time.strftime("%m/%d")
 	if date[0] is "0":
@@ -106,22 +112,25 @@ if __name__ == '__main__':
 	if time[0] is "0":
 		time = time[1:]
 	
-	draw_text(date, (34, 12))
-	draw_text(time, (178, 12), align="right")
-	
+	draw_text(date, (LR_PADDING, TB_PADDING - FONT_Y_OFFSET))
+	draw_text(time, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 2, TB_PADDING - FONT_Y_OFFSET), align="right")
+
 	if current is not None:
 		if "temperature" in current:
-			draw_text(u"{}°".format(current["temperature"]), (188, 38), align="right")
+			temp_str = u"{}°".format(current["temperature"])
+			mid_y = int(pzwglobals.DISPLAY_HEIGHT / 2) - int(draw.textsize(temp_str, font=font)[1] / 2) - int(FONT_Y_OFFSET / 2)
+			draw_text(temp_str, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 12, mid_y), align="right")
 
 		if "humidity" in current:
-			draw_text("{}%".format(current["humidity"]), (194, 64), align="right")
+			bottom_y = pzwglobals.DISPLAY_HEIGHT - TB_PADDING -  draw.textsize(temp_str, font=font)[1]
+			draw_text("{} %".format(current["humidity"]), (pzwglobals.DISPLAY_WIDTH - LR_PADDING, bottom_y), align="right")
 
 	if "icons" in forecast and len(forecast["icons"]) > 0:
 		try:
 			icon = pzwglobals.IMG_DIRECTORY + "icons/" + forecast["icons"][0] + ".png"
 			icon_img = Image.open(icon)
 			mask = create_mask(icon_img)
-			bg.paste(icon_img, (36, 44), mask)
+			bg.paste(icon_img, (LR_PADDING + 2, 44), mask)
 		except:
 			pass
 
