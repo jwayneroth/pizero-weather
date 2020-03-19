@@ -23,7 +23,7 @@ NoaaForecast
 class NoaaForecast():
 	def __init__(self):
 		
-		print('NOAA_URL: ' + NOAA_URL)
+		logger.debug('NOAA_URL: ' + NOAA_URL)
 		
 		try:
 			with open(pzwglobals.DATA_DIRECTORY + "noaa.json") as f:
@@ -36,8 +36,8 @@ class NoaaForecast():
 			now = datetime.now()
 			tdiff = now - last_load
 			
-			#print("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
-			#print(tdiff)
+			logger.debug("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
+			logger.debug(tdiff)
 			
 			if (tdiff < timedelta(minutes=45)):
 				logger.info("using logged noaa data")
@@ -98,7 +98,7 @@ class NoaaForecast():
 		icon_links = dom.getElementsByTagName('icon-link')
 		icons = [] #[None] * 4
 		for i in range(len(icon_links)):
-			print(icon_links[i])
+			logger.debug(icon_links[i])
 			if icon_links[i].firstChild is not None:
 				icons.append(icon_links[i].firstChild.nodeValue.split('/')[-1].split('.')[0].rstrip('0123456789'))
 		return icons
