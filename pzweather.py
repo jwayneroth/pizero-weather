@@ -139,7 +139,7 @@ if __name__ == '__main__':
 		kill()
 
 	inky_display = InkyPHAT("yellow")
-	inky_display.set_border(inky_display.BLACK)
+	inky_display.set_border(RED)
 
 	inky_display.set_image(bg)
 	inky_display.show()
