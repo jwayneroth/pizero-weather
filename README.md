@@ -4,7 +4,7 @@
 <table>
 	<tr>
 		<td colspan="2">
-			<img src="/images/pz-weather.png" width="212" height="104"/>
+			<img src="/images/sample.png" width="212" height="104"/>
 		</td>
 	</tr>
 </table>
