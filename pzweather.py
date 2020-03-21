@@ -93,9 +93,12 @@ if __name__ == '__main__':
 	logger.info('pizero weather started at ' + time.strftime("%m/%d/%Y %I:%M %p"))
 
 	bg = SatelliteImage().image
-
-	forecast = NoaaForecast().forecast
-	current = DarkSkyWeather().weather
+	
+	noaa = NoaaForecast()
+	forecast = noaa.forecast
+	
+	darksky = DarkSkyWeather()
+	current = darksky.weather
 	
 	logger.debug(forecast)
 	logger.debug(current)
@@ -125,9 +128,42 @@ if __name__ == '__main__':
 			bottom_y = pzwglobals.DISPLAY_HEIGHT - TB_PADDING -  draw.textsize(temp_str, font=font)[1]
 			draw_text("{} %".format(current["humidity"]), (pzwglobals.DISPLAY_WIDTH - LR_PADDING, bottom_y), align="right")
 
+	"""
+	we have some noaa icons that take precedence for display
+	otherwise we use our map of darksky icon summaries to our icon images
+	with a fallback noaa icon map
+	"""
+	icon_name = None
+	
+	#if we have noaa icons, we check them first for priority images
 	if "icons" in forecast and len(forecast["icons"]) > 0:
+		for noaa_icon in forecast["icons"]:
+			if noaa_icon in noaa.priority_icons:
+				icon_name = noaa.icon_map[noaa_icon]
+				break
+		
+		#no priority icon, use the darksky summary icon
+		if icon_name is None:
+			if "summary" in current:
+				if current["summary"] in darksky.icon_map:
+					icon_name = darksky.icon_map[current["summary"]]
+		
+		#something went wrong with darksky, use any noaa icon
+		if icon_name is None:
+			while noaa_icon in forecast["icons"]:
+				if noaa_icon in noaa.icon_map:
+					icon_name = noaa.icon_map[noaa_icon]
+					break
+	
+	#no noaa icons to check, use darksky or nothing
+	else:
+		if "summary" in current:
+			if current["summary"] in darksky.icon_map:
+				icon_name = darksky.icon_map[current["summary"]]
+	
+	if icon_name is not None:
 		try:
-			icon = pzwglobals.IMG_DIRECTORY + "icons/" + forecast["icons"][0] + ".png"
+			icon = pzwglobals.IMG_DIRECTORY + "icons/" + icon_name + ".png"
 			icon_img = Image.open(icon)
 			mask = create_mask(icon_img)
 			bg.paste(icon_img, (LR_PADDING + 2, 44), mask)

@@ -6,6 +6,127 @@ import pzwglobals
 
 logger = pzwglobals.logger
 
+"""
+map noaa icon names to names of our custom icons ( our set is much smaller :) )
+"""
+NOAA_ICON_MAP = {
+	'bkn': 'cloudy-day',
+	'blizzard': 'blizzard',
+	'blowingsnow': 'blizzard',
+	'br': 'cloudy-day',
+	'cloudy': 'cloudy',
+	'cloudynight': 'cloudy-night',
+	'cold': 'cold',
+	'drizzle': 'rain',
+	'du': 'fog',
+	'dust': 'fog',
+	#'error',
+	'fair': 'sun',
+	'fdrizzle': 'rain',
+	'few': 'cloudy-day',
+	'fg': 'fog',
+	'flurries': 'snow',
+	'fog': 'fog',
+	'fogn': 'fog',
+	'freezingrain': 'rain',
+	#'fu',
+	'fzra': 'rain',
+	'fzrara': 'rain',
+	'hazy': 'fog',
+	'hi_bkn': 'cloudy-day',
+	'hi_clr': 'sun',
+	'hi_few': 'cloudy-day',
+	'hi_mocldy': 'cloudy-day',
+	'hi_moclr': 'sun',
+	'hi_nbkn': 'cloudy-night',
+	'hi_nclr': 'moon',
+	'hi_nfew': 'cloudy-night',
+	'hi_nmocldy': 'cloudy-night',
+	'hi_nmoclr': 'moon',
+	'hi_nptcldy': 'cloudy-night',
+	'hi_nsct': 'rain',
+	'hi_nshwrs': 'rain',
+	'hi_nskc': 'moon',
+	'hi_ntsra': 'rain',
+	'hi_ptcldy': 'cloudy-night',
+	'hi_sct': 'cloudy-night',
+	'hi_shwrs': 'rain',
+	#'hi_skc',
+	'hi_tsra': 'rain',
+	'hiclouds': 'cloudy',
+	'hot': 'hot',
+	#'hurr-noh',
+	#'hurr',
+	'ip': 'sleet',
+	'mcloudy': 'cloudy',
+	'mcloudyn': 'cloudy-night',
+	'mist': 'sleet',
+	'mix': 'sleet',
+	#'na',
+	#'nbkn',
+	#'nbknfg',
+	'nfew': 'cloudy',
+	#'nfg',
+	'nhiclouds': 'cloudy',
+	'nmix': 'sleet',
+	#'novc',
+	'nra': 'rain',
+	#'nraip',
+	#'nrasn',
+	#'nsct',
+	'nscttsra': 'rain',
+	'nskc': 'rain',
+	#'nsn',
+	'nsvrtsra': 'rain',
+	#'ntor',
+	'ntsra': 'rain',
+	'nwind': 'wind',
+	'ovc': 'cloudy',
+	'pcloudy': 'cloudy',
+	'pcloudyn': 'cloudy-night',
+	'ra': 'rain',
+	'radandsat': 'rain',
+	'rain': 'rain',
+	'rainandsnow': 'sleet',
+	'raip': 'sleet',
+	'rasn': 'sleet',
+	'sct': 'rain',
+	'sctfg': 'fog',
+	'scttsra': 'rain',
+	'showers': 'rain',
+	'shra': 'rain',
+	#'shsn',
+	#'skc',
+	'sleet': 'sleet',
+	'smoke': 'fog',
+	'sn': 'snow',
+	'snow': 'snow',
+	'snowshowers': 'blizzard',
+	'snowshwrs': 'blizzard',
+	'sunny': 'sun',
+	'sunnyn': 'sun',
+	#'tcu',
+	#'tor',
+	#'tropstorm-noh',
+	#'tropstorm',
+	'tsra': 'rain',
+	'tstorm': 'rain',
+	'tstormn': 'rain',
+	'wind': 'wind',
+	'wswarning': 'blizzard',
+	'wswatch': 'blizzard'
+}
+"""
+these noaa icons map to unique icons we like, so they get priority
+"""
+NOAA_PRIORITY_ICONS = [
+	'blizzard',
+	'blowingsnow',
+	'snowshowers',
+	'snowshwrs',
+	'cold',
+	'hot'
+]
 NOAA_ENDPOINT = "http://graphical.weather.gov/xml/SOAP_server/ndfdSOAPclientByDay.php"
 NOAA_FORMAT = "12+hourly"
 NOAA_NUM_DAYS = "1"
@@ -22,23 +143,27 @@ NoaaForecast
 """
 class NoaaForecast():
 	def __init__(self):
-		
+	
 		logger.debug('NOAA_URL: ' + NOAA_URL)
+	
+		self.icon_map = NOAA_ICON_MAP
+		
+		self.priority_icons = NOAA_PRIORITY_ICONS
 		
 		try:
 			with open(pzwglobals.DATA_DIRECTORY + "noaa.json") as f:
 				noaa_log = json.load(f)
 		except:
 			noaa_log = {}
-		
+	
 		if "last_load" in noaa_log:
 			last_load = datetime.strptime(noaa_log["last_load"], LOG_DATE_FORMAT)
 			now = datetime.now()
 			tdiff = now - last_load
-			
+		
 			logger.debug("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
 			logger.debug(tdiff)
-			
+		
 			if (tdiff < timedelta(minutes=45)):
 				logger.info("using logged noaa data")
 				self.forecast = {
@@ -47,22 +172,26 @@ class NoaaForecast():
 					'date': datetime.strptime(noaa_log["date"], '%Y-%m-%d')
 				}
 				return None
-		
-		xmldom = self.getNoaaXmlDom()
-		temps = self.parseTemps(xmldom)
-		icons = self.parseIcons(xmldom)
-		date = self.parseFirstDay(xmldom)
-		
+
+		try:
+			xmldom = self.getNoaaXmlDom()
+			temps = self.parseTemps(xmldom)
+			icons = self.parseIcons(xmldom)
+			date = self.parseFirstDay(xmldom)
+		except:
+			self.forecast = {}
+			return None
+
 		self.forecast = {
 			'temps': temps,
 			'icons': icons,
 			'date':  datetime.strftime(date, '%Y-%m-%d'),
 			'last_load': datetime.now().strftime(LOG_DATE_FORMAT)
 		}
-		
+
 		with open(pzwglobals.DATA_DIRECTORY + "noaa.json", 'w') as f:
 			json.dump(self.forecast, f)
-			
+		
 		return None
 
 	"""

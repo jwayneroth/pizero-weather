@@ -4,17 +4,37 @@ import pzwglobals
 
 logger = pzwglobals.logger
 
+"""
+map darksky icon names to names of our custom icons
+"""
+DARK_SKY_ICON_MAP = {
+	'clear-day': 'sun',
+	'clear-night': 'moon',
+	'partly-cloudy-day': 'cloudy-day',
+	'partly-cloudy-night': 'cloudy-night',
+	'cloudy': 'cloudy',
+	'rain': 'rain',
+	'sleet': 'sleet',
+	'snow': 'snow',
+	'wind': 'wind',
+	'fog': 'fog',
+	'hail': 'hail'
+	#'thunderstorm',
+	#'tornado'
+}
+
 DARK_SKY_URL = "https://darksky.net/forecast/{}/us12/en".format(",".join([pzwglobals.LATITUDE, pzwglobals.LONGITUDE]))
 
 """
 DarkSkyWeather
 
 	lightly adapted from InkyPhat example script
-	scrape darksky for temp, pressure and humidity
+	scrape darksky for temp, summary-icon, pressure and humidity
 	store data on public prop weather
 """
 class DarkSkyWeather():
 	def __init__(self):
+		self.icon_map = DARK_SKY_ICON_MAP
 		self.weather = self.get_weather()
 
 	"""

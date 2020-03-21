@@ -26,6 +26,9 @@ fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 
 logger = logging.getLogger('pz_weather_logger')
-logger.setLevel(logging.INFO)
+if RUN_ON_RASPBERRY_PI:
+	logger.setLevel(logging.INFO)
+else:
+	logger.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 logger.addHandler(fh)
