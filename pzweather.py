@@ -166,7 +166,7 @@ if __name__ == '__main__':
 			icon = pzwglobals.IMG_DIRECTORY + "icons/" + icon_name + ".png"
 			icon_img = Image.open(icon)
 			mask = create_mask(icon_img)
-			bg.paste(icon_img, (LR_PADDING + 2, 44), mask)
+			bg.paste(icon_img, (LR_PADDING, 40), mask)
 		except:
 			pass
 
