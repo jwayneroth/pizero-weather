@@ -3,6 +3,7 @@
 
 import sys
 import time
+import argparse
 from PIL import Image, ImageDraw, ImageFont
 import pzwglobals
 
@@ -24,6 +25,10 @@ TB_PADDING = 12
 
 FONT_SIZE = 26
 FONT_Y_OFFSET = 6
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--icon', '-i', type=str, required=False, choices=['wind', 'sun', 'snowflake', 'sleet', 'rain', 'moon', 'hot', 'hail', 'fog', 'cold', 'cloudy', 'cloudy-night', 'cloudy-day', 'cloud', 'blizzard'], help="force a weather icon to display")
+args = parser.parse_args()
 
 """
 helper to exit program in case we need special rpi consideration in future
@@ -135,31 +140,35 @@ if __name__ == '__main__':
 	"""
 	icon_name = None
 	
-	#if we have noaa icons, we check them first for priority images
-	if "icons" in forecast and len(forecast["icons"]) > 0:
-		for noaa_icon in forecast["icons"]:
-			if noaa_icon in noaa.priority_icons:
-				icon_name = noaa.icon_map[noaa_icon]
-				break
+	#check if user forced an icon via command line arg
+	if args.icon is not None:
+		icon_name = args.icon
+	else:
+		#if we have noaa icons, we check them first for priority images
+		if "icons" in forecast and len(forecast["icons"]) > 0:
+			for noaa_icon in forecast["icons"]:
+				if noaa_icon in noaa.priority_icons:
+					icon_name = noaa.icon_map[noaa_icon]
+					break
 		
-		#no priority icon, use the darksky summary icon
-		if icon_name is None:
+			#no priority icon, use the darksky summary icon
+			if icon_name is None:
+				if "summary" in current:
+					if current["summary"] in darksky.icon_map:
+						icon_name = darksky.icon_map[current["summary"]]
+		
+			#something went wrong with darksky, use any noaa icon
+			if icon_name is None:
+				while noaa_icon in forecast["icons"]:
+					if noaa_icon in noaa.icon_map:
+						icon_name = noaa.icon_map[noaa_icon]
+						break
+	
+		#no noaa icons to check, use darksky or nothing
+		else:
 			if "summary" in current:
 				if current["summary"] in darksky.icon_map:
 					icon_name = darksky.icon_map[current["summary"]]
-		
-		#something went wrong with darksky, use any noaa icon
-		if icon_name is None:
-			while noaa_icon in forecast["icons"]:
-				if noaa_icon in noaa.icon_map:
-					icon_name = noaa.icon_map[noaa_icon]
-					break
-	
-	#no noaa icons to check, use darksky or nothing
-	else:
-		if "summary" in current:
-			if current["summary"] in darksky.icon_map:
-				icon_name = darksky.icon_map[current["summary"]]
 	
 	if icon_name is not None:
 		try:
