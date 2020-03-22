@@ -27,7 +27,9 @@ FONT_SIZE = 26
 FONT_Y_OFFSET = 6
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--icon', '-i', type=str, required=False, choices=['wind', 'sun', 'snowflake', 'sleet', 'rain', 'moon', 'hot', 'hail', 'fog', 'cold', 'cloudy', 'cloudy-night', 'cloudy-day', 'cloud', 'blizzard'], help="force a weather icon to display")
+parser.add_argument('--icon', '-i', type=str, required=False, choices=['wind', 'sun', 'snowflake', 'sleet', 'rain', 'moon', 'hot', 'hail', 'fog', 'cold', 'cloudy', 'cloudy-night', 'cloudy-day', 'cloud', 'blizzard'], help="force a specific weather icon to display")
+parser.add_argument('--dither', '-d', type=str, required=False, choices=['bayer', 'cluster', 'yliluoma'], help="set a dither algorithm for the background")
+parser.add_argument('--threshold', '-t', type=int, required=False, choices=[128, 64, 32], help="set the dither algorithm threshold for dithering")
 args = parser.parse_args()
 
 """
@@ -97,7 +99,7 @@ main
 if __name__ == '__main__':
 	logger.info('pizero weather started at ' + time.strftime("%m/%d/%Y %I:%M %p"))
 
-	bg = SatelliteImage().image
+	bg = SatelliteImage(args.dither, args.threshold).image
 	
 	noaa = NoaaForecast()
 	forecast = noaa.forecast
