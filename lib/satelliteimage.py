@@ -59,9 +59,13 @@ class SatelliteImage():
 			self.image = self.getDefault()
 			return None
 		
-		#self.image = self.doCropAndIndex(img)
+		crop = self.cropTriState(img)
 		
-		self.image = self.doCropAndCustomDither(img)
+		#self.image = self.pillowIndex(crop)
+		
+		#self.image = self.diffusionDither(crop)
+		
+		self.image = self.ditheredIndex(crop)
 		
 		return None
 
@@ -93,12 +97,17 @@ class SatelliteImage():
 			return img
 		except:
 			return None
-
+	
 	"""
 	 crop nyc area from satellite image
-	 convert rgb image to 3 color indexed image 
 	"""
-	def doCropAndIndex(self, img):
+	def cropTriState(self, img):
+		return img.crop((CROP_LEFT, CROP_TOP, CROP_LEFT + BG_WIDTH, CROP_TOP + BG_HEIGHT))
+
+	"""
+	 convert rgb image to 3 color indexed image using Pil quantize with custom palette
+	"""
+	def pillowIndex(self, img):
 		img = img.crop((CROP_LEFT, CROP_TOP, CROP_LEFT + BG_WIDTH, CROP_TOP + BG_HEIGHT))
 		idx_img = Image.new("P", (1, 1))
 		idx_img.putpalette((255, 255, 255, 0, 0, 0, 255, 0, 0) + (0, 0, 0) * 252)
@@ -106,27 +115,33 @@ class SatelliteImage():
 		return img2
 
 	"""
-	 crop nyc area from satellite image
 	 convert rgb image to 3 color indexed image
 	 with custom dithering via hitherdither library
 	"""
-	def doCropAndCustomDither(self, img):
-		img = img.crop((CROP_LEFT, CROP_TOP, CROP_LEFT + BG_WIDTH, CROP_TOP + BG_HEIGHT))
+	def ditheredIndex(self, img):
 		
 		#Yliluoma's Algorithm 1
 		if self.dither is 'yliluoma':
 			img_dithered = hitherdither.ordered.yliluoma.yliluomas_1_ordered_dithering(img, palette, order=8)
+		
 		#Bayer dithering
 		elif self.dither is 'bayer':
 			threshold = self.threshold
 			img_dithered = hitherdither.ordered.bayer.bayer_dithering(img, palette, [threshold, threshold, threshold], order=8)
+		
 		#Cluster dot
 		else:
 			threshold = self.threshold
 			img_dithered = hitherdither.ordered.cluster.cluster_dot_dithering(img, palette, [threshold, threshold, threshold], order=8)
 		
 		return img_dithered
-
+	
+	"""
+	 do dither using one of hitherdither's diffusion dither algorithms
+	"""
+	def diffusionDither(self, img):
+		return hitherdither.diffusion.error_diffusion_dithering(img, palette, method='stevenson-arce')
+		
 	"""
 	 use default satellite background
 	"""
