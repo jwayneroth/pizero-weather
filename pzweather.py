@@ -143,33 +143,37 @@ if __name__ == '__main__':
 	#check if user forced an icon via command line arg
 	if args.icon is not None:
 		icon_name = args.icon
+
+	#else determine icon based on our data
 	else:
+
 		#if we have noaa icons, we check them first for priority images
 		if "icons" in forecast and len(forecast["icons"]) > 0:
 			for noaa_icon in forecast["icons"]:
 				if noaa_icon in noaa.priority_icons:
 					icon_name = noaa.icon_map[noaa_icon]
 					break
-		
+
 			#no priority icon, use the darksky summary icon
 			if icon_name is None:
 				if "summary" in current:
 					if current["summary"] in darksky.icon_map:
 						icon_name = darksky.icon_map[current["summary"]]
-		
+
 			#something went wrong with darksky, use any noaa icon
 			if icon_name is None:
 				while noaa_icon in forecast["icons"]:
 					if noaa_icon in noaa.icon_map:
 						icon_name = noaa.icon_map[noaa_icon]
 						break
-	
+
 		#no noaa icons to check, use darksky or nothing
 		else:
 			if "summary" in current:
 				if current["summary"] in darksky.icon_map:
 					icon_name = darksky.icon_map[current["summary"]]
-	
+
+	#if we determined an icon, try to load it
 	if icon_name is not None:
 		try:
 			icon = pzwglobals.IMG_DIRECTORY + "icons/" + icon_name + ".png"
