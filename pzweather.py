@@ -9,9 +9,6 @@ import argparse
 from PIL import Image, ImageDraw, ImageFont
 import pzwglobals
 
-if pzwglobals.RUN_ON_RASPBERRY_PI:
-	from inky import InkyPHAT
-
 from lib.satelliteimage import SatelliteImage
 from lib.noaaforecast import NoaaForecast
 from lib.darkskyweather import DarkSkyWeather
@@ -224,8 +221,10 @@ if __name__ == '__main__':
 	bg.save( pzwglobals.IMG_DIRECTORY + OUTPUT_FILENAME)
 	
 	if pzwglobals.RUN_ON_RASPBERRY_PI:
-		subprocess.Popen('scp {} -i ~/.ssh/id_rsa root@192.168.2.10:/mnt/us/weather/{}'.format(pzwglobals.IMG_DIRECTORY + OUTPUT_FILENAME, OUTPUT_FILENAME), shell=True, stdout=subprocess.PIPE)
-	
+		try:
+			subprocess.Popen('scp -i ~/.ssh/id_rsa {} root@192.168.2.10:/mnt/us/weather/{}'.format(pzwglobals.IMG_DIRECTORY + OUTPUT_FILENAME, OUTPUT_FILENAME), shell=True, stdout=subprocess.PIPE)
+		except:
+			logger.warning("could not upload weather image to kindle")
 	kill()
 
 

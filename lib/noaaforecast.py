@@ -154,6 +154,7 @@ class NoaaForecast():
 			with open(pzwglobals.DATA_DIRECTORY + "noaa.json") as f:
 				noaa_log = json.load(f)
 		except:
+			logger.warning("couldn't open noaa log")
 			noaa_log = {}
 	
 		if "last_load" in noaa_log:
@@ -209,7 +210,7 @@ class NoaaForecast():
 					'last_load': noaa_log["last_load"]
 				}
 			return None
-		
+
 		self.forecast = {
 			'date_names': [fd.strftime("%A") for fd in forecast_dates],
 			'dates_abbr': [fd.strftime("%m/%d") for fd in forecast_dates],

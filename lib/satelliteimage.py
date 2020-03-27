@@ -36,7 +36,7 @@ SatelliteImage
 """
 class SatelliteImage():
 	def __init__(self, dither, threshold):
-		
+
 		if dither is None:
 			dither = DEFAULT_DITHER_ALGORITHM
 		if threshold is None:
