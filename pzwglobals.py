@@ -1,6 +1,8 @@
 import os
 import logging
 
+DEBUG = False
+
 LATITUDE = "40.74307"
 LONGITUDE = "-73.9182"
 

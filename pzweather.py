@@ -24,12 +24,19 @@ TB_PADDING = 45
 
 FONT_SIZE = 80
 FONT_SIZE_SMALL = 35
-
 FONT_Y_OFFSET = 11
 
 ICON_SIZE_SMALL = 160
 
 OUTPUT_FILENAME = 'pz-weather.png'
+
+FONT_LARGE = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE)
+FONT_SMALL = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE_SMALL)
+
+fonts = {
+	'large': FONT_LARGE,
+	'small': FONT_SMALL
+}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--icon', '-i', type=str, required=False, choices=['wind', 'sun', 'snowflake', 'sleet', 'rain', 'moon', 'hot', 'hail', 'fog', 'cold', 'cloudy', 'cloudy-night', 'cloudy-day', 'cloud', 'blizzard'], help="force a specific weather icon to display")
@@ -74,8 +81,9 @@ render a string onto our surface
 	:param xy: tuple with top and right or left corner
 	:param align: optional align left or right
 """
-def draw_text(string, xy, font, align="left"):
-	over = 2
+def draw_text(string, xy, font_name, align="left"):
+	over = 4 if font_name is 'small' else 6
+	font = fonts[font_name]
 	x,y = xy
 	if align is "right":
 		w,h = draw.textsize(string, font=font)
@@ -117,9 +125,6 @@ if __name__ == '__main__':
 	logger.debug(current)
 	
 	draw = ImageDraw.Draw(bg)
-
-	font = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE)
-	font_small = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE_SMALL)
 	
 	# print today's day, time, current temp and humidity
 	day = now.strftime("%A")
@@ -132,19 +137,19 @@ if __name__ == '__main__':
 	if time[0] is "0":
 		time = time[1:]
 	
-	draw_text(day, (LR_PADDING, 10), font=font_small)
-	draw_text(date, (LR_PADDING, TB_PADDING - FONT_Y_OFFSET + 10), font=font)
-	draw_text(time, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 2, TB_PADDING - FONT_Y_OFFSET + 10), font=font, align="right")
+	draw_text(day, (LR_PADDING, 10), 'small')
+	draw_text(date, (LR_PADDING, TB_PADDING - FONT_Y_OFFSET + 10), 'large')
+	draw_text(time, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 2, TB_PADDING - FONT_Y_OFFSET + 10), 'large', align="right")
 
 	if current is not None:
 		if "temperature" in current:
 			temp_str = u"{}°".format(current["temperature"])
-			mid_y = TB_PADDING + int((pzwglobals.DISPLAY_HEIGHT - TB_PADDING) / 4.75) - int(draw.textsize(temp_str, font=font)[1] / 2) - int(FONT_Y_OFFSET / 2)
-			draw_text(temp_str, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 12, mid_y), font=font, align="right")
+			mid_y = TB_PADDING + int((pzwglobals.DISPLAY_HEIGHT - TB_PADDING) / 4.75) - int(draw.textsize(temp_str, font=FONT_LARGE)[1] / 2) - int(FONT_Y_OFFSET / 2)
+			draw_text(temp_str, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 12, mid_y), 'large', align="right")
 
 		if "humidity" in current:
-			bottom_y = TB_PADDING + int((pzwglobals.DISPLAY_HEIGHT - TB_PADDING) / 2.375) - draw.textsize(temp_str, font=font)[1] - FONT_Y_OFFSET
-			draw_text("{} %".format(current["humidity"]), (pzwglobals.DISPLAY_WIDTH - LR_PADDING, bottom_y), font=font, align="right")
+			bottom_y = TB_PADDING + int((pzwglobals.DISPLAY_HEIGHT - TB_PADDING) / 2.375) - draw.textsize(temp_str, font=FONT_LARGE)[1] - FONT_Y_OFFSET
+			draw_text("{} %".format(current["humidity"]), (pzwglobals.DISPLAY_WIDTH - LR_PADDING, bottom_y), 'large', align="right")
 
 	# print today's icon
 	# we have some noaa icons that take precedence for display
@@ -195,9 +200,9 @@ if __name__ == '__main__':
 	line_height = FONT_SIZE_SMALL + 10
 	
 	for i in range(1,4):
-		draw_text(forecast["date_names"][i], (rx, ry), font=font_small, align="left")
-		draw_text("High: {}°".format(forecast["temps"][0][i]), (rx, ry + line_height), font=font_small, align="left")
-		draw_text("Low:  {}°".format(forecast["temps"][1][i]), (rx, ry + line_height * 2), font=font_small, align="left")
+		draw_text(forecast["date_names"][i], (rx, ry), 'small', align="left")
+		draw_text("High: {}°".format(forecast["temps"][0][i]), (rx, ry + line_height), 'small', align="left")
+		draw_text("Low:  {}°".format(forecast["temps"][1][i]), (rx, ry + line_height * 2), 'small', align="left")
 		
 		if forecast["icons"][i] is not None and forecast["icons"][i] in noaa.icon_map:
 			icon = pzwglobals.IMG_DIRECTORY + "icons/" + noaa.icon_map[forecast["icons"][i]] + ".png"
@@ -211,8 +216,8 @@ if __name__ == '__main__':
 			summary_lines = textwrap.wrap(summary_text, width=9)
 			summary_y = ry + line_height * 3 + 20
 			for s_line in summary_lines:
-				s_lineh = draw.textsize(s_line, font=font_small)[1]
-				draw_text(s_line, (rx, summary_y), font=font_small, align="left")
+				s_lineh = draw.textsize(s_line, font=FONT_SMALL)[1]
+				draw_text(s_line, (rx, summary_y), 'small', align="left")
 				summary_y = summary_y + s_lineh
 		
 		rx = rx + col_width
