@@ -16,15 +16,15 @@ DEFAULT_DITHER_THRESHOLD = 64
 
 NOAA_IMG_URL = "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/"
 
-CROP_LEFT = 593
-CROP_TOP = 508
-BG_WIDTH = 212
-BG_HEIGHT = 104
+CROP_LEFT = 254
+CROP_TOP = 48
+BG_WIDTH = 600
+BG_HEIGHT = 800
 
 logger = pzwglobals.logger
 
 palette = hitherdither.palette.Palette(
-	[0xffffff, 0x000000, 0xff0000]
+	[0xffffff, 0x000000]
 )
 
 """
@@ -73,16 +73,19 @@ class SatelliteImage():
 	 find latest 1200 x 1200 satellite image on server
 	"""
 	def getLatestImageUrl(self):
-		res = requests.get(NOAA_IMG_URL)
-		if res.status_code == 200:
-			soup = BeautifulSoup(res.content, 'html.parser')
-			img_urls = soup.find_all('a', string=re.compile("1200x1200"))
-			if not img_urls:
-				logger.warning('Error: no image urls found')
-				return None
-			logger.debug('latest image anchor: ')
-			logger.debug(img_urls[-1])
-			return NOAA_IMG_URL + img_urls[-1]['href']
+		try:
+			res = requests.get(NOAA_IMG_URL)
+			if res.status_code == 200:
+				soup = BeautifulSoup(res.content, 'html.parser')
+				img_urls = soup.find_all('a', string=re.compile("1200x1200"))
+				if not img_urls:
+					logger.warning('Error: no image urls found')
+					return None
+				logger.debug('latest image anchor: ')
+				logger.debug(img_urls[-1])
+				return NOAA_IMG_URL + img_urls[-1]['href']
+		except:
+			pass
 		return None
 	
 	"""
