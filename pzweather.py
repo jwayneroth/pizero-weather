@@ -15,6 +15,8 @@ from lib.darkskyweather import DarkSkyWeather
 
 logger = pzwglobals.logger
 
+KINDLE_IP = '192.168.2.2'
+
 BLACK = 1
 WHITE = 0
 RED = 2
@@ -39,8 +41,9 @@ fonts = {
 }
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--debug', '-d', type=str, required=False, choices=['true', 'True', 'false', 'False'], help="run in debug mode") 
 parser.add_argument('--icon', '-i', type=str, required=False, choices=['wind', 'sun', 'snowflake', 'sleet', 'rain', 'moon', 'hot', 'hail', 'fog', 'cold', 'cloudy', 'cloudy-night', 'cloudy-day', 'cloud', 'blizzard'], help="force a specific weather icon to display")
-parser.add_argument('--dither', '-d', type=str, required=False, choices=['bayer', 'cluster', 'yliluoma'], help="set a dither algorithm for the background")
+parser.add_argument('--dither', '-a', type=str, required=False, choices=['bayer', 'cluster', 'yliluoma'], help="set a dither algorithm for the background")
 parser.add_argument('--threshold', '-t', type=int, required=False, choices=[128, 64, 32], help="set the dither algorithm threshold for dithering")
 args = parser.parse_args()
 
@@ -112,15 +115,19 @@ main
 if __name__ == '__main__':
 	logger.info('pizero weather started at ' + datetime.now().strftime("%m/%d/%Y %I:%M %p"))
 	
+	debug = False
+	if args.debug is 'true' or args.debug is 'True':
+		debug = True
+	
 	now = datetime.now()
 	
-	bg = SatelliteImage(args.dither, args.threshold).image
+	bg = SatelliteImage(args.dither, args.threshold, debug=debug).image
 	
-	noaa = NoaaForecast()
+	noaa = NoaaForecast(debug=debug)
 	forecast = noaa.forecast
 	logger.debug(forecast)
 	
-	darksky = DarkSkyWeather()
+	darksky = DarkSkyWeather(debug=debug)
 	current = darksky.weather
 	logger.debug(current)
 	
@@ -227,9 +234,20 @@ if __name__ == '__main__':
 	
 	if pzwglobals.RUN_ON_RASPBERRY_PI:
 		try:
-			subprocess.Popen('scp -i ~/.ssh/id_rsa {} root@192.168.2.10:/mnt/us/weather/{}'.format(pzwglobals.IMG_DIRECTORY + OUTPUT_FILENAME, OUTPUT_FILENAME), shell=True, stdout=subprocess.PIPE)
+			#http://pi.hole/weather/pz-weather.png
+			cp = 'cp {} /var/www/html/weather/{}'.format(pzwglobals.IMG_DIRECTORY + OUTPUT_FILENAME, OUTPUT_FILENAME)
+			logger.debug('cp command: {}'.format(cp))
+			subprocess.Popen(cp, shell=True, stdout=subprocess.PIPE)
+		except:
+			logger.warning("could not copy weather image to server")
+		"""
+		try:
+			scp = 'scp -i ~/.ssh/id_rsa {} root@{}:/mnt/us/weather/{}'.format(pzwglobals.IMG_DIRECTORY + OUTPUT_FILENAME, KINDLE_IP, OUTPUT_FILENAME)
+			logger.debug('scp command: {}'.format(scp))
+			subprocess.Popen(scp, shell=True, stdout=subprocess.PIPE)
 		except:
 			logger.warning("could not upload weather image to kindle")
+		"""
 	kill()
 
 

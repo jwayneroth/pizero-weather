@@ -11,7 +11,7 @@ import pzwglobals
 
 DEFAULT_BG = pzwglobals.IMG_DIRECTORY + 'default-bg.png'
 
-DEFAULT_DITHER_ALGORITHM = 'yliluoma'
+DEFAULT_DITHER_ALGORITHM = 'bayer' #'yliluoma'
 DEFAULT_DITHER_THRESHOLD = 64
 
 NOAA_IMG_URL = "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/"
@@ -35,9 +35,9 @@ SatelliteImage
 	store new image or local default on public prop image
 """
 class SatelliteImage():
-	def __init__(self, dither, threshold):
+	def __init__(self, dither, threshold, debug=False):
 		
-		if pzwglobals.DEBUG is True:
+		if debug is True:
 			self.image = self.getDefault()
 			return None
 		

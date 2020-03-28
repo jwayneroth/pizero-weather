@@ -37,7 +37,7 @@ DarkSkyWeather
 	store data on public prop weather
 """
 class DarkSkyWeather():
-	def __init__(self):
+	def __init__(self, debug=False):
 		self.icon_map = DARK_SKY_ICON_MAP
 		
 		try:
@@ -55,7 +55,7 @@ class DarkSkyWeather():
 			logger.debug("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
 			logger.debug(tdiff)
 			
-			if (tdiff < timedelta(minutes=10) or pzwglobals.DEBUG is True):
+			if (tdiff < timedelta(minutes=10) or debug is True):
 				logger.info("using logged darksky data")
 				self.weather = {
 					'summary': drksky_log["summary"],

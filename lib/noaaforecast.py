@@ -142,7 +142,7 @@ NoaaForecast
 	store data on public prop forecast
 """
 class NoaaForecast():
-	def __init__(self):
+	def __init__(self, debug=False):
 	
 		logger.debug('NOAA_URL: ' + NOAA_URL)
 	
@@ -165,7 +165,7 @@ class NoaaForecast():
 			logger.debug("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
 			logger.debug(tdiff)
 		
-			if (tdiff < timedelta(minutes=45) or pzwglobals.DEBUG is True):
+			if (tdiff < timedelta(minutes=45) or debug is True):
 				logger.info("using logged noaa data")
 				self.forecast = {
 					'date_names': noaa_log["date_names"],
