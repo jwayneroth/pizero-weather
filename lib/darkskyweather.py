@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
+import json
 import pzwglobals
 
 logger = pzwglobals.logger
@@ -25,6 +27,8 @@ DARK_SKY_ICON_MAP = {
 
 DARK_SKY_URL = "https://darksky.net/forecast/{}/us12/en".format(",".join([pzwglobals.LATITUDE, pzwglobals.LONGITUDE]))
 
+LOG_DATE_FORMAT = '%Y%m%d%H%M%S'
+
 """
 DarkSkyWeather
 
@@ -33,10 +37,40 @@ DarkSkyWeather
 	store data on public prop weather
 """
 class DarkSkyWeather():
-	def __init__(self):
+	def __init__(self, debug=False):
 		self.icon_map = DARK_SKY_ICON_MAP
+		
+		try:
+			with open(pzwglobals.DATA_DIRECTORY + "darksky.json") as f:
+				drksky_log = json.load(f)
+		except:
+			logger.warning("couldn't open darksky log")
+			drksky_log = {}
+	
+		if drksky_log is not None and "last_load" in drksky_log:
+			last_load = datetime.strptime(drksky_log["last_load"], LOG_DATE_FORMAT)
+			now = datetime.now()
+			tdiff = now - last_load
+		
+			logger.debug("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
+			logger.debug(tdiff)
+			
+			if (tdiff < timedelta(minutes=10) or debug is True):
+				logger.info("using logged darksky data")
+				self.weather = {
+					'summary': drksky_log["summary"],
+					'temperature': drksky_log["temperature"],
+					'pressure': drksky_log["pressure"],
+					'humidity': drksky_log["humidity"],
+				}
+				return None
+				
 		self.weather = self.get_weather()
-
+		
+		with open(pzwglobals.DATA_DIRECTORY + "darksky.json", 'w') as f:
+			json.dump(self.weather, f)
+			
+		return None
 	"""
 	Query Dark Sky (https://darksky.net/) to scrape current weather data
 	"""
