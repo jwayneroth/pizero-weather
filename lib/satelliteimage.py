@@ -69,7 +69,7 @@ class SatelliteImage():
 		
 		#self.image = self.diffusionDither(crop)
 		
-		self.image = self.ditheredIndex(crop)
+		self.image = crop #self.ditheredIndex(crop)
 		
 		return None
 

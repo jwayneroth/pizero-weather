@@ -17,9 +17,9 @@ logger = pzwglobals.logger
 
 KINDLE_IP = '192.168.2.2'
 
-BLACK = 1
-WHITE = 0
-RED = 2
+BLACK = (0,0,0) #1
+WHITE = (255, 255, 255) #0
+RED = (255, 0, 0) #2
 
 LR_PADDING = 25
 TB_PADDING = 45
@@ -65,14 +65,17 @@ Create a transparency mask.
 
 	:param mask: Optional list of Inky pHAT colours to allow.
 """
-def create_mask(source, mask=(WHITE, BLACK)):
-	mask_image = Image.new("1", source.size)
+def create_mask(source, mask=(0, 1)):
+	mask_image = Image.new("RGBA", source.size)
 	w, h = source.size
 	for x in range(w):
 		for y in range(h):
 			p = source.getpixel((x, y))
+			#logger.info('pixel {} {} {}'.format(x,y,p))
 			if p in mask:
-				mask_image.putpixel((x, y), 255)
+				mask_image.putpixel((x, y), (0,0,0,255))
+			else:
+				mask_image.putpixel((x, y), (0,0,0,0))
 	return mask_image
 
 """
