@@ -35,8 +35,12 @@ SatelliteImage
 	store new image or local default on public prop image
 """
 class SatelliteImage():
-	def __init__(self, dither, threshold):
+	def __init__(self, dither, threshold, debug=False):
 		
+		if debug is True:
+			self.image = self.getDefault()
+			return None
+			
 		if dither is None:
 			dither = DEFAULT_DITHER_ALGORITHM
 		if threshold is None:

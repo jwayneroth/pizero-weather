@@ -129,7 +129,7 @@ NOAA_PRIORITY_ICONS = [
 ]
 NOAA_ENDPOINT = "http://graphical.weather.gov/xml/SOAP_server/ndfdSOAPclientByDay.php"
 NOAA_FORMAT = "12+hourly"
-NOAA_NUM_DAYS = "1"
+NOAA_NUM_DAYS = "4"
 NOAA_QUERY = "whichClient=NDFDgenByDay&lat=" + pzwglobals.LATITUDE + "&lon=" + pzwglobals.LONGITUDE + "&format=" + NOAA_FORMAT + "&numDays=" + NOAA_NUM_DAYS + "&Unit=e"
 NOAA_URL = NOAA_ENDPOINT + "?" + NOAA_QUERY
 
@@ -142,7 +142,7 @@ NoaaForecast
 	store data on public prop forecast
 """
 class NoaaForecast():
-	def __init__(self):
+	def __init__(self, debug=False):
 	
 		logger.debug('NOAA_URL: ' + NOAA_URL)
 	
@@ -154,6 +154,7 @@ class NoaaForecast():
 			with open(pzwglobals.DATA_DIRECTORY + "noaa.json") as f:
 				noaa_log = json.load(f)
 		except:
+			logger.warning("couldn't open noaa log")
 			noaa_log = {}
 	
 		if "last_load" in noaa_log:
@@ -164,31 +165,61 @@ class NoaaForecast():
 			logger.debug("time difference: " + last_load.strftime(LOG_DATE_FORMAT) + " - " + now.strftime(LOG_DATE_FORMAT))
 			logger.debug(tdiff)
 		
-			if (tdiff < timedelta(minutes=45)):
+			if (tdiff < timedelta(minutes=45) or debug is True):
 				logger.info("using logged noaa data")
 				self.forecast = {
+					'date_names': noaa_log["date_names"],
+					'dates_abbr': noaa_log["dates_abbr"],
 					'temps': noaa_log["temps"],
 					'icons': noaa_log["icons"],
-					'date': datetime.strptime(noaa_log["date"], '%Y-%m-%d')
+					'summaries': noaa_log["summaries"],
+					'last_load': noaa_log["last_load"]
 				}
 				return None
-
+		
+		today = datetime.today()
+		
+		forecast_dates = [
+			today,
+			today + timedelta(days=1),
+			today + timedelta(days=2),
+			today + timedelta(days=3),
+		]
+		
+		self.dates = [fd.strftime("%Y-%m-%d") for fd in forecast_dates]
+		
+		logger.debug('noaa desired dates: {}'.format(self.dates))
+		
 		try:
 			xmldom = self.getNoaaXmlDom()
-			temps = self.parseTemps(xmldom)
-			icons = self.parseIcons(xmldom)
-			date = self.parseFirstDay(xmldom)
+			time_layouts = self.parseTimeLayouts(xmldom)
+			temps = self.parseTemps(xmldom, time_layouts)
+			icons = self.parseIcons(xmldom, time_layouts)
+			summaries = self.parseSummaries(xmldom, time_layouts)
+			
 		except:
-			self.forecast = {}
+			logger.warning('error building forecast')
+			
+			if "last_load" in noaa_log:
+				self.forecast = {
+					'date_names': noaa_log["date_names"],
+					'dates_abbr': noaa_log["dates_abbr"],
+					'temps': noaa_log["temps"],
+					'icons': noaa_log["icons"],
+					'summaries': noaa_log["summaries"],
+					'last_load': noaa_log["last_load"]
+				}
 			return None
 
 		self.forecast = {
+			'date_names': [fd.strftime("%A") for fd in forecast_dates],
+			'dates_abbr': [fd.strftime("%m/%d") for fd in forecast_dates],
 			'temps': temps,
 			'icons': icons,
-			'date':  datetime.strftime(date, '%Y-%m-%d'),
+			'summaries': summaries,
 			'last_load': datetime.now().strftime(LOG_DATE_FORMAT)
 		}
-
+		
 		with open(pzwglobals.DATA_DIRECTORY + "noaa.json", 'w') as f:
 			json.dump(self.forecast, f)
 		
@@ -203,35 +234,103 @@ class NoaaForecast():
 		return dom
 
 	"""
-	get days max, min temps
+	parse time layouts and store in list
 	"""
-	def parseTemps(self, dom):
+	def parseTimeLayouts(self, dom):
+		tl_dict = {}
+		time_layouts = dom.getElementsByTagName('time-layout')
+		
+		for tl in time_layouts:
+			
+			lk = tl.getElementsByTagName('layout-key')[0]
+			
+			start_times = tl.getElementsByTagName('start-valid-time')
+			
+			st_list = []
+			
+			for i in range(len(start_times)):
+				st = start_times[i]
+				st_date = st.firstChild.nodeValue[0:10]
+				st_list.append(st_date)
+			
+			tl_dict.update({lk.firstChild.nodeValue: st_list})
+		
+		return tl_dict
+		
+	"""
+	get days max, min temps
+	 we only want one of each for each of our days (today +3)
+	"""
+	def parseTemps(self, dom, times):
 		temps = dom.getElementsByTagName('temperature')
-		highs = [] #[None] * 4
-		lows = [] #[None] * 4
+		highs = [None] * 4
+		lows = [None] * 4
+		
 		for item in temps:
-				if item.getAttribute('type') == 'maximum':
-					values = item.getElementsByTagName('value')
-					for i in range(len(values)):
-						highs.append(int(values[i].firstChild.nodeValue))
-				if item.getAttribute('type') == 'minimum':
-					values = item.getElementsByTagName('value')
-					for i in range(len(values)):
-						lows.append(int(values[i].firstChild.nodeValue))
+			
+			if item.getAttribute('type') == 'maximum':
+				time_layout = item.getAttribute('time-layout')
+				temp_dates = times[time_layout]
+				values = item.getElementsByTagName('value')
+				for i in range(len(self.dates)):
+					date = self.dates[i]
+					if date in temp_dates:
+						date_index = temp_dates.index(date)
+						highs[i] = values[date_index].firstChild.nodeValue
+				
+			if item.getAttribute('type') == 'minimum':
+				time_layout = item.getAttribute('time-layout')
+				temp_dates = times[time_layout]
+				values = item.getElementsByTagName('value')
+				for i in range(len(self.dates)):
+					date = self.dates[i]
+					if date in temp_dates:
+						date_index = temp_dates.index(date)
+						lows[i] = values[date_index].firstChild.nodeValue
+		
 		return [highs, lows]
 
 	"""
 	get days of icon names
+	 we only want one value for each of our days (today +3)
 	"""
-	def parseIcons(self, dom):
-		icon_links = dom.getElementsByTagName('icon-link')
-		icons = [] #[None] * 4
-		for i in range(len(icon_links)):
-			logger.debug(icon_links[i])
-			if icon_links[i].firstChild is not None:
-				icons.append(icon_links[i].firstChild.nodeValue.split('/')[-1].split('.')[0].rstrip('0123456789'))
+	def parseIcons(self, dom, times):
+		conditions_icon = dom.getElementsByTagName('conditions-icon')[0]
+		time_layout = conditions_icon.getAttribute('time-layout')
+		icon_dates = times[time_layout]
+		icon_links = conditions_icon.getElementsByTagName('icon-link')
+		
+		icons = [None] * 4
+		
+		for i in range(len(self.dates)):
+			date = self.dates[i]
+			if date in icon_dates:
+				date_index = icon_dates.index(date)
+				if icon_links[date_index].firstChild is not None:
+					icons[i] = icon_links[date_index].firstChild.nodeValue.split('/')[-1].split('.')[0].rstrip('0123456789')
+		
 		return icons
 
+	"""
+	get text summaries for our forecast days
+	"""
+	def parseSummaries(self, dom, times):
+		weather = dom.getElementsByTagName('weather')[0]
+		time_layout = weather.getAttribute('time-layout')
+		weather_dates = times[time_layout]
+		weather_values = weather.getElementsByTagName('weather-conditions')
+		
+		summaries = [""] * 4
+		
+		for i in range(len(self.dates)):
+			date = self.dates[i]
+			if date in weather_dates:
+				date_index = weather_dates.index(date)
+				if weather_values[date_index].getAttribute('weather-summary') is not None:
+					summaries[i] = weather_values[date_index].getAttribute('weather-summary')
+		
+		return summaries
+		
 	"""
 	get date of first forecast day
 	"""
