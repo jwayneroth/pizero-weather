@@ -47,7 +47,7 @@ class DarkSkyWeather():
 			logger.warning("couldn't open darksky log")
 			drksky_log = {}
 	
-		if "last_load" in drksky_log:
+		if darksky_log is not None and "last_load" in drksky_log:
 			last_load = datetime.strptime(drksky_log["last_load"], LOG_DATE_FORMAT)
 			now = datetime.now()
 			tdiff = now - last_load

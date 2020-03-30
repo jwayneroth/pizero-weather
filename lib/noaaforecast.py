@@ -157,7 +157,7 @@ class NoaaForecast():
 			logger.warning("couldn't open noaa log")
 			noaa_log = {}
 	
-		if "last_load" in noaa_log:
+		if noaa_log is not None and "last_load" in noaa_log:
 			last_load = datetime.strptime(noaa_log["last_load"], LOG_DATE_FORMAT)
 			now = datetime.now()
 			tdiff = now - last_load
