@@ -47,7 +47,7 @@ class DarkSkyWeather():
 			logger.warning("couldn't open darksky log")
 			drksky_log = {}
 	
-		if darksky_log is not None and "last_load" in drksky_log:
+		if drksky_log is not None and "last_load" in drksky_log:
 			last_load = datetime.strptime(drksky_log["last_load"], LOG_DATE_FORMAT)
 			now = datetime.now()
 			tdiff = now - last_load
@@ -62,11 +62,14 @@ class DarkSkyWeather():
 					'temperature': drksky_log["temperature"],
 					'pressure': drksky_log["pressure"],
 					'humidity': drksky_log["humidity"],
+					'last_load': drksky_log["last_load"]
 				}
 				return None
 				
 		self.weather = self.get_weather()
 		
+		self.weather['last_load'] = datetime.now().strftime(LOG_DATE_FORMAT)
+
 		with open(pzwglobals.DATA_DIRECTORY + "darksky.json", 'w') as f:
 			json.dump(self.weather, f)
 			
