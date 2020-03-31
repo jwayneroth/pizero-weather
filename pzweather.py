@@ -15,6 +15,7 @@ if pzwglobals.RUN_ON_RASPBERRY_PI:
 	import RPi.GPIO as GPIO
 	BTN_PIN = 21
 	btn_down = False
+	btn_last_down = None
 
 from lib.satelliteimage import SatelliteImage
 from lib.noaaforecast import NoaaForecast
@@ -43,9 +44,6 @@ def read_kbd_input(input_queue):
 		input_str = input()
 		input_queue.put(input_str)
 
-def handle_gpio_press(btn):
-	btn_down = True
-
 """
 main app class
  maintains screen instances. handles switching screens
@@ -70,7 +68,8 @@ class PzWeather():
 		
 		self.screens = {
 			'current_weather': CurrentWeather('current_weather', debug=self.debug, display=self.display),
-			'forecast_days': ForecastDays('forecast_days', debug=self.debug, display=self.display) 
+			'forecast_days': ForecastDays('forecast_days', debug=self.debug, display=self.display),
+			'confirm': ConfirmScreen('confirm', debug=self.debug, display=self.display)
 		}
 
 	def change_screen(self, screen_name):
@@ -134,7 +133,7 @@ if __name__ == '__main__':
 	if pzwglobals.RUN_ON_RASPBERRY_PI:
 		GPIO.setmode(GPIO.BCM)
 		GPIO.setup( BTN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-		GPIO.add_event_detect(BTN_PIN, GPIO.FALLING, handle_gpio_press, bouncetime=20)
+		GPIO.add_event_detect(BTN_PIN, GPIO.FALLING, bouncetime=120) #, callback=handle_gpio_press)
 	else:
 		input_queue = queue.Queue()
 		input_thread = threading.Thread(target=read_kbd_input, args=(input_queue,), daemon=True)
@@ -150,8 +149,30 @@ if __name__ == '__main__':
 		
 		# check ui
 		if pzwglobals.RUN_ON_RASPBERRY_PI:
-			if btn_down is True:
-				logger.info('gpio button down')
+			if GPIO.event_detected(BTN_PIN):
+				
+				btn_down = not btn_down
+				
+				logger.info('button change {}'.format(btn_down))
+				
+				now = datetime.now()
+				
+				# down
+				if btn_down:
+					btn_last_down = now
+				# up
+				else:
+					
+					if self.current.name == 'confirm':
+						pzweather.kill()
+					
+					if btn_last_down is not None:
+						tdiff = now - btn_last_down
+						if (tdiff >= timedelta(seconds=3)):
+							pzweather.change_screen('confirm')
+						else:
+							pzweather.toggle_screens()
+					
 		else:
 			if (input_queue.qsize() > 0):
 				input_str = input_queue.get()

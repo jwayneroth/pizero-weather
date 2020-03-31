@@ -86,6 +86,24 @@ class Screen():
 			cx = cx + cw
 
 """
+confirm shutdown screen
+"""
+class ConfirmScreen(Screen):
+	def __init__(self, name, icon=None, display=None, debug=False):
+		Screen.__init__(self, name, display, debug)
+	
+	def render(self, bg):
+		draw = ImageDraw.Draw(bg)
+		mid_y = int(pzwglobals.DISPLAY_HEIGHT / 2) - int(draw.textsize(temp_str, font=self.font)[1] / 2) - int(FONT_Y_OFFSET / 2)
+		self.text_with_border(draw, 'Shutdown?', (LR_PADDING, mid_y))
+		
+		if self.display is not None:
+			self.display.set_image(bg)
+			self.display.show()
+		else:
+			bg.save(pzwglobals.IMG_DIRECTORY + 'pz-weather-confirm.png')
+
+"""
 screen class for current weather
 """
 class CurrentWeather(Screen):
