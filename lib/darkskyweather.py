@@ -6,25 +6,6 @@ import pzwglobals
 
 logger = pzwglobals.logger
 
-"""
-map darksky icon names to names of our custom icons
-"""
-DARK_SKY_ICON_MAP = {
-	'clear-day': 'sun',
-	'clear-night': 'moon',
-	'partly-cloudy-day': 'cloudy-day',
-	'partly-cloudy-night': 'cloudy-night',
-	'cloudy': 'cloudy',
-	'rain': 'rain',
-	'sleet': 'sleet',
-	'snow': 'snow',
-	'wind': 'wind',
-	'fog': 'fog',
-	'hail': 'hail'
-	#'thunderstorm',
-	#'tornado'
-}
-
 DARK_SKY_URL = "https://darksky.net/forecast/{}/us12/en".format(",".join([pzwglobals.LATITUDE, pzwglobals.LONGITUDE]))
 
 LOG_DATE_FORMAT = '%Y%m%d%H%M%S'
@@ -38,8 +19,6 @@ DarkSkyWeather
 """
 class DarkSkyWeather():
 	def __init__(self, debug=False):
-		self.icon_map = DARK_SKY_ICON_MAP
-		
 		try:
 			with open(pzwglobals.DATA_DIRECTORY + "darksky.json") as f:
 				drksky_log = json.load(f)
@@ -62,10 +41,12 @@ class DarkSkyWeather():
 					'temperature': drksky_log["temperature"],
 					'pressure': drksky_log["pressure"],
 					'humidity': drksky_log["humidity"],
+					'last_load': drksky_log["last_load"]
 				}
 				return None
-				
+		
 		self.weather = self.get_weather()
+		self.weather['last_load'] = datetime.now().strftime(LOG_DATE_FORMAT)
 		
 		with open(pzwglobals.DATA_DIRECTORY + "darksky.json", 'w') as f:
 			json.dump(self.weather, f)
