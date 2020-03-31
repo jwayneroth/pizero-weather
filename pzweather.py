@@ -12,6 +12,9 @@ import pzwglobals
 
 if pzwglobals.RUN_ON_RASPBERRY_PI:
 	from inky import InkyPHAT
+	import RPi.GPIO as GPIO
+	BTN_PIN = 21
+	btn_down = False
 
 from lib.satelliteimage import SatelliteImage
 from lib.noaaforecast import NoaaForecast
@@ -39,6 +42,9 @@ def read_kbd_input(input_queue):
 	while (True):
 		input_str = input()
 		input_queue.put(input_str)
+
+def handle_gpio_press(btn):
+	btn_down = True
 
 """
 main app class
@@ -76,7 +82,14 @@ class PzWeather():
 		if self.current:
 			self.last = self.current
 		self.current = screen
-		self.current.render(bg=self.bg.copy(), darksky=self.darksky, noaa=self.noaa, icon=args.icon)
+		self.render_current_screen()
+
+	def render_current_screen(self):
+		if self.current is not None:
+			if self.current.name == 'confirm':
+				self.current.render(bg=self.bg.copy())
+			else:
+				self.current.render(bg=self.bg.copy(), darksky=self.darksky, noaa=self.noaa, icon=args.icon)
 	
 	# do time check to update data
 	def check_time(self):
@@ -84,6 +97,7 @@ class PzWeather():
 		tdiff = now - self.last_load
 		if (tdiff >= timedelta(minutes=10)):
 			self.load_data()
+			self.render_current_screen()
 	
 	def load_data(self):
 		logger.debug('PzWeather::load_data')
@@ -118,7 +132,9 @@ if __name__ == '__main__':
 	
 	# init ui for pi and desktop for switching screens, exit / shutdown
 	if pzwglobals.RUN_ON_RASPBERRY_PI:
-		pass
+		GPIO.setmode(GPIO.BCM)
+		GPIO.setup( BTN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+		GPIO.add_event_detect(BTN_PIN, GPIO.FALLING, handle_gpio_press, bouncetime=20)
 	else:
 		input_queue = queue.Queue()
 		input_thread = threading.Thread(target=read_kbd_input, args=(input_queue,), daemon=True)
@@ -133,8 +149,10 @@ if __name__ == '__main__':
 	while (True):
 		
 		# check ui
-		# "exit" input triggers exit, any other input triggers screen change
-		if not pzwglobals.RUN_ON_RASPBERRY_PI:
+		if pzwglobals.RUN_ON_RASPBERRY_PI:
+			if btn_down is True:
+				logger.info('gpio button down')
+		else:
 			if (input_queue.qsize() > 0):
 				input_str = input_queue.get()
 				logger.debug("input_str = {}".format(input_str))
