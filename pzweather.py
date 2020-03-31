@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
+import time
+import threading
+import queue
 import argparse
 from PIL import Image, ImageDraw, ImageFont
 import pzwglobals
@@ -13,18 +16,11 @@ if pzwglobals.RUN_ON_RASPBERRY_PI:
 from lib.satelliteimage import SatelliteImage
 from lib.noaaforecast import NoaaForecast
 from lib.darkskyweather import DarkSkyWeather
+from lib.screens import *
 
 logger = pzwglobals.logger
 
-BLACK = 1
-WHITE = 0
-RED = 2
-
-LR_PADDING = 20
-TB_PADDING = 12
-
-FONT_SIZE = 26
-FONT_Y_OFFSET = 6
+EXIT_COMMAND = 'exit'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', '-d', type=str, required=False, choices=['true', 'True', 'false', 'False'], help="run in debug mode") 
@@ -34,65 +30,85 @@ parser.add_argument('--threshold', '-t', type=int, required=False, choices=[128,
 args = parser.parse_args()
 
 """
-helper to exit program in case we need special rpi consideration in future
+small thread to handle keyboard input on desktop
+ as seen here: https://stackoverflow.com/questions/5404068/how-to-read-keyboard-input/53344690#53344690
 """
-def kill():
-	if pzwglobals.RUN_ON_RASPBERRY_PI:
-		sys.exit(0)
-	else:
-		sys.exit(0)
+def read_kbd_input(input_queue):
+	logger.debug('starting keyboard thread')
+	print('Type exit to quit or anything else to toggle screens.')
+	while (True):
+		input_str = input()
+		input_queue.put(input_str)
 
 """
-Create a transparency mask.
-
-	Takes a paletized source image and converts it into a mask
-	permitting all the colours supported by Inky pHAT (0, 1, 2)
-	or an optional list of allowed colours.
-
-	:param mask: Optional list of Inky pHAT colours to allow.
+main app class
+ maintains screen instances. handles switching screens
 """
-def create_mask(source, mask=(WHITE, BLACK, RED)):
-	mask_image = Image.new("1", source.size)
-	w, h = source.size
-	for x in range(w):
-		for y in range(h):
-			p = source.getpixel((x, y))
-			if p in mask:
-				mask_image.putpixel((x, y), 255)
-	return mask_image
+class PzWeather():
+	def __init__(self):
+		self.debug = False
+		self.display = None
+		self.current = None
+		self.last = None
+		self.last_load = None
+		self.bg = None
+		self.noaa = None
+		self.darksky = None
+		
+		if args.debug is 'true' or args.debug is 'True':
+			self.debug = True
+		
+		if pzwglobals.RUN_ON_RASPBERRY_PI:
+			self.display = InkyPHAT("yellow")
+			self.display.set_border(WHITE)
+		
+		self.screens = {
+			'current_weather': CurrentWeather('current_weather', debug=self.debug, display=self.display),
+			'forecast_days': ForecastDays('forecast_days', debug=self.debug, display=self.display) 
+		}
 
-"""
-render a string onto our surface
-	measure width to figure x point if right aligned
-	render in white first for ersatz dropshadow, then black
+	def change_screen(self, screen_name):
+		logger.debug('PzWeather::change_screen \t' + screen_name)
+		self.make_current_scene(self.screens[screen_name])
 
-	:param string: text to render
-	:param xy: tuple with top and right or left corner
-	:param align: optional align left or right
-"""
-def draw_text(string, xy, align="left"):
-	over = 2
-	x,y = xy
-	if align is "right":
-		w,h = draw.textsize(string, font=font)
-		x = x - w
-	cx = x
-	for c in string:
-		draw.text((cx-over,y-over), c, WHITE, font=font)
-		draw.text((cx,y-over), c, WHITE, font=font)
-		draw.text((cx+over,y-over), c, WHITE, font=font)
-		draw.text((cx-over,y), c, WHITE, font=font)
-		draw.text((cx+over,y), c, WHITE, font=font)
-		draw.text((cx-over,y+over), c, WHITE, font=font)
-		draw.text((cx,y+over), c, WHITE, font=font)
-		draw.text((cx+over,y+over), c, WHITE, font=font)
-		cw = draw.textsize(c, font=font)[0]
-		cx = cx + cw
-	cx = x
-	for c in string:
-		draw.text((cx,y), c, BLACK, font=font)
-		cw = draw.textsize(c, font=font)[0]
-		cx = cx + cw
+	def make_current_scene(self, screen):
+		logger.debug('PzWeather::make_current_scene \t' + screen.name)
+		if self.current:
+			self.last = self.current
+		self.current = screen
+		self.current.render(bg=self.bg.copy(), darksky=self.darksky, noaa=self.noaa, icon=args.icon)
+	
+	# do time check to update data
+	def check_time(self):
+		now = datetime.now()
+		tdiff = now - self.last_load
+		if (tdiff >= timedelta(minutes=10)):
+			self.load_data()
+	
+	def load_data(self):
+		logger.debug('PzWeather::load_data')
+		self.bg = SatelliteImage(args.dither, args.threshold, debug=self.debug).image
+		self.noaa = NoaaForecast(debug=self.debug).forecast
+		self.darksky = DarkSkyWeather(debug=self.debug).weather
+		
+		logger.debug(self.noaa)
+		logger.debug(self.darksky)
+		
+		self.last_load = datetime.now()
+		
+	def toggle_screens(self):
+		logger.debug('PzWeather::toggle_screens')
+		if self.current and self.current.name == 'current_weather':
+			self.change_screen('forecast_days')
+			return
+		self.change_screen('current_weather')
+	
+	# helper to exit program in case we need special rpi consideration in future
+	def kill():
+		if pzwglobals.RUN_ON_RASPBERRY_PI:
+			sys.exit(0)
+		else:
+			sys.exit(0)
 
 """
 main
@@ -100,101 +116,39 @@ main
 if __name__ == '__main__':
 	logger.info('pizero weather started at ' + datetime.now().strftime("%m/%d/%Y %I:%M %p"))
 	
-	debug = False
-	if args.debug is 'true' or args.debug is 'True':
-		debug = True
-	
-	now = datetime.now()
-	
-	bg = SatelliteImage(args.dither, args.threshold, debug-debug).image
-	
-	noaa = NoaaForecast(debug=debug)
-	forecast = noaa.forecast
-	
-	darksky = DarkSkyWeather(debug=debug)
-	current = darksky.weather
-	
-	logger.debug(forecast)
-	logger.debug(current)
-	
-	draw = ImageDraw.Draw(bg)
-
-	font = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE)
-	
-	date = now.strftime("%m/%d")
-	if date[0] is "0":
-		date = date[1:]
-	
-	time = now.strftime("%I:%M %p")
-	if time[0] is "0":
-		time = time[1:]
-	
-	draw_text(date, (LR_PADDING, TB_PADDING - FONT_Y_OFFSET))
-	draw_text(time, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 2, TB_PADDING - FONT_Y_OFFSET), align="right")
-
-	if current is not None:
-		if "temperature" in current:
-			temp_str = u"{}°".format(current["temperature"])
-			mid_y = int(pzwglobals.DISPLAY_HEIGHT / 2) - int(draw.textsize(temp_str, font=font)[1] / 2) - int(FONT_Y_OFFSET / 2)
-			draw_text(temp_str, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 12, mid_y), align="right")
-
-		if "humidity" in current:
-			bottom_y = pzwglobals.DISPLAY_HEIGHT - TB_PADDING -  draw.textsize(temp_str, font=font)[1]
-			draw_text("{} %".format(current["humidity"]), (pzwglobals.DISPLAY_WIDTH - LR_PADDING, bottom_y), align="right")
-
-	# current icon
-	# we have some noaa icons that take precedence for display
-	# otherwise we use our map of darksky icon summaries to our icon images
-	# with a fallback noaa icon map
-
-	icon_name = None
-	
-	#check if user forced an icon via command line arg
-	if args.icon is not None:
-		icon_name = args.icon
-
-	#else determine icon based on our data
+	# init ui for pi and desktop for switching screens, exit / shutdown
+	if pzwglobals.RUN_ON_RASPBERRY_PI:
+		pass
 	else:
-
-		#if we have noaa icons, we check them first for priority images
-		noaa_icon = forecast["icons"][0]
+		input_queue = queue.Queue()
+		input_thread = threading.Thread(target=read_kbd_input, args=(input_queue,), daemon=True)
+		input_thread.start()
+	
+	# init app and render current weather screen
+	pzweather = PzWeather()
+	pzweather.load_data()
+	pzweather.change_screen('current_weather')
+	
+	# main loop
+	while (True):
 		
-		if noaa_icon is not None:
-			if noaa_icon in noaa.priority_icons:
-				icon_name = noaa.icon_map[noaa_icon]
-			
-		#no priority icon, use the darksky summary icon
-		if icon_name is None:
-			if "summary" in current:
-				if current["summary"] in darksky.icon_map:
-					icon_name = darksky.icon_map[current["summary"]]
-
-		#something went wrong with darksky, use any noaa icon
-		if icon_name is None and noaa_icon is not None:
-			if noaa_icon in noaa.icon_map:
-				icon_name = noaa.icon_map[noaa_icon]
-
-	#if we determined an icon, try to load it
-	if icon_name is not None:
-		try:
-			icon = pzwglobals.IMG_DIRECTORY + "icons/" + icon_name + ".png"
-			icon_img = Image.open(icon)
-			mask = create_mask(icon_img)
-			bg.paste(icon_img, (LR_PADDING, 40), mask)
-		except:
-			pass
-
-	if not pzwglobals.RUN_ON_RASPBERRY_PI:
-		bg.save(pzwglobals.IMG_DIRECTORY + 'pz-weather.png')
-		kill()
-
-	inky_display = InkyPHAT("yellow")
-	inky_display.set_border(WHITE)
-
-	inky_display.set_image(bg)
-	inky_display.show()
-
-	kill()
+		# check ui
+		# "exit" input triggers exit, any other input triggers screen change
+		if not pzwglobals.RUN_ON_RASPBERRY_PI:
+			if (input_queue.qsize() > 0):
+				input_str = input_queue.get()
+				logger.debug("input_str = {}".format(input_str))
+				if (input_str == EXIT_COMMAND):
+					pzweather.kill()
+				else:
+					print('switching screens...')
+					pzweather.toggle_screens()
+				
+		pzweather.check_time()
+		
+		time.sleep(0.2) 
+	
+	pzweather.kill()
 
 
 

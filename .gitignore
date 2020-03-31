@@ -5,3 +5,6 @@ __py_cache__
 fonts/
 data/
 images/pz-weather.png
+images/pz-weather-current.png
+images/pz-weather-forecast.png
+images/pz-weather-confirm.png
