@@ -1,12 +1,12 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          fmulcd
+# Provides:          pzweather
 # Required-Start:    $remote_fs $syslog $network
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Play Music
-# Description:       Pygame UI for MPD
+# Short-Description: Display Weather
+# Description:       Current weather and three day forecast Inky e-ink display
 ### END INIT INFO
 
 # Author: Jonathan Roth
