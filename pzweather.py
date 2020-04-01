@@ -14,8 +14,6 @@ if pzwglobals.RUN_ON_RASPBERRY_PI:
 	from inky import InkyPHAT
 	import RPi.GPIO as GPIO
 	BTN_PIN = 21
-	btn_down = False
-	btn_last_down = None
 
 from lib.satelliteimage import SatelliteImage
 from lib.noaaforecast import NoaaForecast
@@ -58,6 +56,9 @@ class PzWeather():
 		self.bg = None
 		self.noaa = None
 		self.darksky = None
+		self.btn_down = False
+		self.btn_last_down = None
+		self.confirm_timer_start = None
 		
 		if args.debug is 'true' or args.debug is 'True':
 			self.debug = True
@@ -74,25 +75,40 @@ class PzWeather():
 
 	def change_screen(self, screen_name):
 		logger.debug('PzWeather::change_screen \t' + screen_name)
-		self.make_current_scene(self.screens[screen_name])
+		self.make_current_screen(self.screens[screen_name])
 
-	def make_current_scene(self, screen):
-		logger.debug('PzWeather::make_current_scene \t' + screen.name)
+	def make_current_screen(self, screen):
+		logger.debug('PzWeather::make_current_screen \t' + screen.name)
+		if self.last and self.last.name == 'confirm':
+			self.confirm_timer_start = None
 		if self.current:
 			self.last = self.current
 		self.current = screen
 		self.render_current_screen()
+		if self.current.name == 'confirm':
+			self.start_confirm_timer()
 
+	def start_confirm_timer(self):
+		self.confirm_timer_start = datetime.now()
+		
 	def render_current_screen(self):
 		if self.current is not None:
 			if self.current.name == 'confirm':
-				self.current.render(bg=self.bg.copy())
+				self.current.render()
 			else:
 				self.current.render(bg=self.bg.copy(), darksky=self.darksky, noaa=self.noaa, icon=args.icon)
 	
 	# do time check to update data
 	def check_time(self):
 		now = datetime.now()
+		
+		if self.confirm_timer_start is not None:
+			tdiff = now - self.confirm_timer_start
+			if (tdiff >= timedelta(seconds=5)):
+				self.confirm_timer_start = None
+				if self.last is not None:
+					self.change_screen(self.last.name)
+		
 		tdiff = now - self.last_load
 		if (tdiff >= timedelta(minutes=10)):
 			self.load_data()
@@ -116,8 +132,28 @@ class PzWeather():
 			return
 		self.change_screen('current_weather')
 	
+	def button_toggle(self):
+		self.btn_down = not self.btn_down
+		
+		logger.info('PzWeather::button_toggle {}'.format(self.btn_down))
+		
+		now = datetime.now()
+		
+		if self.btn_down:
+			self.btn_last_down = now
+		else:
+			if self.current.name == 'confirm':
+				self.kill()
+			
+			if self.btn_last_down is not None:
+				tdiff = now - self.btn_last_down
+				if (tdiff >= timedelta(seconds=3)):
+					self.change_screen('confirm')
+				else:
+					self.toggle_screens()
+	
 	# helper to exit program in case we need special rpi consideration in future
-	def kill():
+	def kill(self):
 		if pzwglobals.RUN_ON_RASPBERRY_PI:
 			sys.exit(0)
 		else:
@@ -150,39 +186,13 @@ if __name__ == '__main__':
 		# check ui
 		if pzwglobals.RUN_ON_RASPBERRY_PI:
 			if GPIO.event_detected(BTN_PIN):
-				
-				btn_down = not btn_down
-				
-				logger.info('button change {}'.format(btn_down))
-				
-				now = datetime.now()
-				
-				# down
-				if btn_down:
-					btn_last_down = now
-				# up
-				else:
-					
-					if self.current.name == 'confirm':
-						pzweather.kill()
-					
-					if btn_last_down is not None:
-						tdiff = now - btn_last_down
-						if (tdiff >= timedelta(seconds=3)):
-							pzweather.change_screen('confirm')
-						else:
-							pzweather.toggle_screens()
-					
+				pzweather.button_toggle()
 		else:
 			if (input_queue.qsize() > 0):
 				input_str = input_queue.get()
 				logger.debug("input_str = {}".format(input_str))
-				if (input_str == EXIT_COMMAND):
-					pzweather.kill()
-				else:
-					print('switching screens...')
-					pzweather.toggle_screens()
-				
+				pzweather.button_toggle()
+		
 		pzweather.check_time()
 		
 		time.sleep(0.2) 

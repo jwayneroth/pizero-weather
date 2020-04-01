@@ -92,10 +92,12 @@ class ConfirmScreen(Screen):
 	def __init__(self, name, icon=None, display=None, debug=False):
 		Screen.__init__(self, name, display, debug)
 	
-	def render(self, bg):
+	def render(self):
+		bg = Image.new("1", (pzwglobals.DISPLAY_WIDTH, pzwglobals.DISPLAY_HEIGHT), 1)
+		msg = 'Shutdown?'
 		draw = ImageDraw.Draw(bg)
-		mid_y = int(pzwglobals.DISPLAY_HEIGHT / 2) - int(draw.textsize(temp_str, font=self.font)[1] / 2) - int(FONT_Y_OFFSET / 2)
-		self.text_with_border(draw, 'Shutdown?', (LR_PADDING, mid_y))
+		mid_y = int(pzwglobals.DISPLAY_HEIGHT / 2) - int(draw.textsize(msg, font=self.font)[1] / 2) - int(FONT_Y_OFFSET / 2)
+		self.text_with_border(draw, msg, (LR_PADDING, mid_y))
 		
 		if self.display is not None:
 			self.display.set_image(bg)
