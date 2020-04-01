@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 import pzwglobals
 
 if pzwglobals.RUN_ON_RASPBERRY_PI:
+	import subprocess
 	from inky import InkyPHAT
 	import RPi.GPIO as GPIO
 	BTN_PIN = 21
@@ -143,7 +144,10 @@ class PzWeather():
 			self.btn_last_down = now
 		else:
 			if self.current.name == 'confirm':
-				self.kill()
+				if pzwglobals.RUN_ON_RASPBERRY_PI:
+					subprocess.Popen('sudo shutdown -h now', shell=True, stdout=subprocess.PIPE)
+				else:
+					self.kill()
 			
 			if self.btn_last_down is not None:
 				tdiff = now - self.btn_last_down
