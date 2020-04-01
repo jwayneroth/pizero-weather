@@ -214,7 +214,7 @@ class ForecastDays(Screen):
 				icon_img.thumbnail((ICON_SIZE_SMALL, ICON_SIZE_SMALL))
 				mask.thumbnail((ICON_SIZE_SMALL, ICON_SIZE_SMALL))
 				bg.paste(icon_img, (rx, ry + line_height + line_height_small), mask)
-			else:
+			elif noaa["summaries"][i] is not None:
 				summary_text = noaa["summaries"][i]
 				summary_lines = textwrap.wrap(summary_text, width=9)
 				summary_y = ry + line_height + line_height_small

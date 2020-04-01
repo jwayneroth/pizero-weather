@@ -138,8 +138,8 @@ class NoaaForecast():
 	"""
 	def parseTemps(self, dom, times):
 		temps = dom.getElementsByTagName('temperature')
-		highs = [None] * 4
-		lows = [None] * 4
+		highs = ['?'] * 4
+		lows = ['?'] * 4
 		
 		for item in temps:
 			
@@ -151,8 +151,9 @@ class NoaaForecast():
 					date = self.dates[i]
 					if date in temp_dates:
 						date_index = temp_dates.index(date)
-						highs[i] = values[date_index].firstChild.nodeValue
-				
+						if values[date_index].firstChild is not None:
+							highs[i] = values[date_index].firstChild.nodeValue
+
 			if item.getAttribute('type') == 'minimum':
 				time_layout = item.getAttribute('time-layout')
 				temp_dates = times[time_layout]
@@ -161,8 +162,9 @@ class NoaaForecast():
 					date = self.dates[i]
 					if date in temp_dates:
 						date_index = temp_dates.index(date)
-						lows[i] = values[date_index].firstChild.nodeValue
-		
+						if values[date_index].firstChild is not None:
+							lows[i] = values[date_index].firstChild.nodeValue
+
 		return [highs, lows]
 
 	"""

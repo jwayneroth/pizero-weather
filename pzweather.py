@@ -138,8 +138,8 @@ if __name__ == '__main__':
 	# init ui for pi and desktop for switching screens, exit / shutdown
 	if pzwglobals.RUN_ON_RASPBERRY_PI:
 		GPIO.setmode(GPIO.BCM)
-		GPIO.setup( BTN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-		GPIO.add_event_detect(BTN_PIN, GPIO.FALLING, bouncetime=120) #, callback=handle_gpio_press)
+		GPIO.setup(BTN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+		GPIO.add_event_detect(BTN_PIN, GPIO.FALLING, bouncetime=120)
 	else:
 		input_queue = queue.Queue()
 		input_thread = threading.Thread(target=read_kbd_input, args=(input_queue,), daemon=True)
