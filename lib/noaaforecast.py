@@ -212,7 +212,7 @@ class NoaaForecast():
 			return None
 
 		self.forecast = {
-			'date_names': [fd.strftime("%A") for fd in forecast_dates],
+			'date_names': [fd.strftime("%a") for fd in forecast_dates],
 			'dates_abbr': [fd.strftime("%m/%d") for fd in forecast_dates],
 			'temps': temps,
 			'icons': icons,
@@ -263,8 +263,8 @@ class NoaaForecast():
 	"""
 	def parseTemps(self, dom, times):
 		temps = dom.getElementsByTagName('temperature')
-		highs = [None] * 4
-		lows = [None] * 4
+		highs = ['?'] * 4
+		lows = ['?'] * 4
 		
 		for item in temps:
 			

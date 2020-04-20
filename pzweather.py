@@ -25,7 +25,8 @@ LR_PADDING = 25
 TB_PADDING = 45
 
 FONT_SIZE = 80
-FONT_SIZE_SMALL = 35
+FONT_SIZE_MEDIUM = 60
+FONT_SIZE_SMALL = 50
 FONT_Y_OFFSET = 11
 
 ICON_SIZE_SMALL = 160
@@ -33,10 +34,12 @@ ICON_SIZE_SMALL = 160
 OUTPUT_FILENAME = 'pz-weather.png'
 
 FONT_LARGE = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE)
+FONT_MEDIUM = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE_MEDIUM)
 FONT_SMALL = ImageFont.truetype(pzwglobals.FONT_DIRECTORY + "Impact.ttf", FONT_SIZE_SMALL)
 
 fonts = {
 	'large': FONT_LARGE,
+	'medium': FONT_MEDIUM,
 	'small': FONT_SMALL
 }
 
@@ -147,8 +150,8 @@ if __name__ == '__main__':
 	if time[0] is "0":
 		time = time[1:]
 	
-	draw_text(day, (LR_PADDING, 10), 'small')
-	draw_text(date, (LR_PADDING, TB_PADDING - FONT_Y_OFFSET + 10), 'large')
+	draw_text(day, (LR_PADDING, 10), 'medium')
+	draw_text(date, (LR_PADDING, TB_PADDING - FONT_Y_OFFSET + 40), 'large')
 	draw_text(time, (pzwglobals.DISPLAY_WIDTH - LR_PADDING - 2, TB_PADDING - FONT_Y_OFFSET + 10), 'large', align="right")
 
 	if current is not None:
@@ -199,7 +202,7 @@ if __name__ == '__main__':
 			icon = pzwglobals.IMG_DIRECTORY + "icons/" + icon_name + ".png"
 			icon_img = Image.open(icon)
 			mask = create_mask(icon_img)
-			bg.paste(icon_img, (LR_PADDING, 140), mask)
+			bg.paste(icon_img, (LR_PADDING, 175), mask)
 		except:
 			pass
 	
@@ -210,9 +213,8 @@ if __name__ == '__main__':
 	line_height = FONT_SIZE_SMALL + 10
 	
 	for i in range(1,4):
-		draw_text(forecast["date_names"][i], (rx, ry), 'small', align="left")
-		draw_text("High: {}°".format(forecast["temps"][0][i]), (rx, ry + line_height), 'small', align="left")
-		draw_text("Low:  {}°".format(forecast["temps"][1][i]), (rx, ry + line_height * 2), 'small', align="left")
+		draw_text(forecast["date_names"][i], (rx, ry), 'medium', align="left")
+		draw_text("{}° - {}°".format(forecast["temps"][1][i], forecast["temps"][0][i]), (rx, ry + line_height + 10), 'small', align="left")
 		
 		if forecast["icons"][i] is not None and forecast["icons"][i] in noaa.icon_map:
 			icon = pzwglobals.IMG_DIRECTORY + "icons/" + noaa.icon_map[forecast["icons"][i]] + ".png"
@@ -220,7 +222,7 @@ if __name__ == '__main__':
 			mask = create_mask(icon_img)
 			icon_img.thumbnail((ICON_SIZE_SMALL, ICON_SIZE_SMALL))
 			mask.thumbnail((ICON_SIZE_SMALL, ICON_SIZE_SMALL))
-			bg.paste(icon_img, (rx, ry + line_height * 3 + 20), mask)
+			bg.paste(icon_img, (rx, ry + line_height * 2 + 20), mask)
 		else:
 			summary_text = forecast["summaries"][i]
 			summary_lines = textwrap.wrap(summary_text, width=9)
