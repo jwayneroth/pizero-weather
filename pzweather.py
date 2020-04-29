@@ -141,6 +141,8 @@ if __name__ == '__main__':
 	
 	# print today's day, time, current temp and humidity
 	day = now.strftime("%A")
+	if day is "Wednesday":
+		day = "Wed"
 	
 	date = now.strftime("%m/%d")
 	if date[0] is "0":
